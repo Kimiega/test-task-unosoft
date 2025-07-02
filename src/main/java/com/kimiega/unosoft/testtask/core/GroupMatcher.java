@@ -6,6 +6,11 @@ import com.kimiega.unosoft.testtask.model.Result;
 import java.util.*;
 
 public class GroupMatcher {
+    private static final String EMPTY_VALUE = "\"\"";
+    private static final String QUOTE_MARK = "\"";
+    private static final String SEMI_COLON = ";";
+
+
     public GroupMatcher() {
     }
 
@@ -15,7 +20,7 @@ public class GroupMatcher {
         List<Group> groups = new ArrayList<>();
 
         for (String row : setRows) {
-            String[] values = row.trim().split(";");
+            String[] values = row.trim().split(SEMI_COLON);
             Group foundGroup = null;
 
             boolean badRow = false;
@@ -71,10 +76,10 @@ public class GroupMatcher {
     }
 
     private Result<String> prepareValue(String value) {
-        if (value == null || value.isEmpty() || value.equals("\"\"")) {
+        if (value == null || value.isEmpty() || value.equals(EMPTY_VALUE)) {
             return new Result<>(true, null);
         }
-        var splitValue = value.split("\"");
+        var splitValue = value.split(QUOTE_MARK);
         if (splitValue.length != 2 || !splitValue[0].isEmpty()) {
             return new Result<>(false, "Invalid value: " + value);
         }
