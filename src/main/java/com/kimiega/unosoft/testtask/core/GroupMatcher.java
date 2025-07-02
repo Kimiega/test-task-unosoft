@@ -1,11 +1,13 @@
 package com.kimiega.unosoft.testtask.core;
 
 import com.kimiega.unosoft.testtask.model.Group;
+import com.kimiega.unosoft.testtask.model.Result;
 
 import java.util.*;
 
 public class GroupMatcher {
-    public GroupMatcher() {}
+    public GroupMatcher() {
+    }
 
     public List<Group> getGroups(List<String> rows) {
         Set<String> setRows = new HashSet<>(rows);
@@ -13,23 +15,36 @@ public class GroupMatcher {
         List<Group> groups = new ArrayList<>();
 
         for (String row : setRows) {
-            var numbers = row.split(";");
+            String[] values = row.trim().split(";");
             Group foundGroup = null;
 
-            for (int i = 0; i < numbers.length; i++) {
-                var number = prepareNumber(numbers[i]);
+            boolean badRow = false;
+
+            for (int i = 0; i < values.length; i++) {
+
+                var preparingResult = prepareValue(values[i]);
+
+                if (!preparingResult.isSuccess()) {
+                    badRow = true;
+                    break;
+                }
 
                 if (groupMappings.size() <= i) {
                     break;
                 }
-                if (number == null) {
+                if (preparingResult.getValue() == null) {
                     continue;
                 }
-                if (groupMappings.get(i).containsKey(number)) {
-                    foundGroup = groupMappings.get(i).get(number);
+                if (groupMappings.get(i).containsKey(preparingResult.getValue())) {
+                    foundGroup = groupMappings.get(i).get(preparingResult.getValue());
                     break;
                 }
             }
+
+            if (badRow) {
+                continue;
+            }
+
             if (foundGroup == null) {
                 foundGroup = new Group();
                 groups.add(foundGroup);
@@ -37,33 +52,32 @@ public class GroupMatcher {
 
             foundGroup.addRow(row);
 
-            for (int i = 0; i < numbers.length; i++) {
+            for (int i = 0; i < values.length; i++) {
                 if (groupMappings.size() <= i) {
                     groupMappings.add(new HashMap<>());
                 }
-                var number = prepareNumber(numbers[i]);
-                if (number == null) {
+                var preparingResult = prepareValue(values[i]);
+                if (!preparingResult.isSuccess()) {
+                    throw new IllegalArgumentException(preparingResult.getValue());
+                }
+                if (preparingResult.getValue() == null) {
                     continue;
                 }
-                groupMappings.get(i).put(number, foundGroup);
+                groupMappings.get(i).put(preparingResult.getValue(), foundGroup);
             }
         }
 
         return groups;
     }
 
-    private String prepareNumber(String number) {
-        if (number == null || number.isEmpty()) {
-            return null;
+    private Result<String> prepareValue(String value) {
+        if (value == null || value.isEmpty() || value.equals("\"\"")) {
+            return new Result<>(true, null);
         }
-
-        if (number.charAt(0) == '"' && number.charAt(number.length() - 1) == '"' && number.length() > 2) {
-            for (int i = 1; i < number.length() - 1; i++) {
-                if (!Character.isDigit(number.charAt(i)))
-                    return null;
-            }
-        } else return null;
-
-        return number;
+        var splitValue = value.split("\"");
+        if (splitValue.length != 2 || !splitValue[0].isEmpty()) {
+            return new Result<>(false, "Invalid value: " + value);
+        }
+        return new Result<>(true, value);
     }
 }
