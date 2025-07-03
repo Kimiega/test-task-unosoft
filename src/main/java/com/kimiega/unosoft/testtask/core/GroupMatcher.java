@@ -8,7 +8,7 @@ import java.util.*;
 public class GroupMatcher {
     private static final String EMPTY_VALUE = "\"\"";
     private static final String QUOTE_MARK = "\"";
-    private static final String SEMI_COLON = ";";
+    private static final char SEMI_COLON_CHAR = ';';
 
 
     public GroupMatcher() {
@@ -20,14 +20,14 @@ public class GroupMatcher {
         List<Group> groups = new ArrayList<>();
 
         for (String row : setRows) {
-            String[] values = row.trim().split(SEMI_COLON);
+            List<String> values = splitRow(row.trim());
             Group foundGroup = null;
 
             boolean badRow = false;
 
-            for (int i = 0; i < values.length; i++) {
+            for (int i = 0; i < values.size(); i++) {
 
-                var preparingResult = prepareValue(values[i]);
+                var preparingResult = prepareValue(values.get(i));
 
                 if (!preparingResult.isSuccess()) {
                     badRow = true;
@@ -57,11 +57,11 @@ public class GroupMatcher {
 
             foundGroup.addRow(row);
 
-            for (int i = 0; i < values.length; i++) {
+            for (int i = 0; i < values.size(); i++) {
                 if (groupMappings.size() <= i) {
                     groupMappings.add(new HashMap<>());
                 }
-                var preparingResult = prepareValue(values[i]);
+                var preparingResult = prepareValue(values.get(i));
                 if (!preparingResult.isSuccess()) {
                     throw new IllegalArgumentException(preparingResult.getValue());
                 }
@@ -84,5 +84,23 @@ public class GroupMatcher {
             return new Result<>(false, "Invalid value: " + value);
         }
         return new Result<>(true, value);
+    }
+
+    public static List<String> splitRow(String row) {
+        if (row == null || row.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<String> values = new ArrayList<>();
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < row.length(); i++) {
+            if (row.charAt(i) == SEMI_COLON_CHAR) {
+                values.add(builder.toString());
+                builder = new StringBuilder();
+            } else {
+                builder.append(row.charAt(i));
+            }
+        }
+        values.add(builder.toString());
+        return values;
     }
 }
