@@ -15,9 +15,7 @@ public class GroupMatcher {
     }
 
     public List<Group> getGroups(List<String> rows) {
-        Set<String> setRows = new HashSet<>();
-        // При использовании конструктора не все значения находятся
-        setRows.addAll(rows);
+        Set<String> setRows = new TreeSet<>(rows);
 
         List<Map<String, Group>> groupMappings = new ArrayList<>();
         List<Group> groups = new ArrayList<>();
