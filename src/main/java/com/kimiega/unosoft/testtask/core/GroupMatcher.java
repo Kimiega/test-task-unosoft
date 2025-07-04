@@ -2,8 +2,10 @@ package com.kimiega.unosoft.testtask.core;
 
 import com.kimiega.unosoft.testtask.model.Group;
 import com.kimiega.unosoft.testtask.model.Result;
+import com.kimiega.unosoft.testtask.model.Row;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class GroupMatcher {
     private static final String EMPTY_VALUE = "\"\"";
@@ -11,66 +13,73 @@ public class GroupMatcher {
     private static final char SEMI_COLON_CHAR = ';';
 
 
-    public GroupMatcher() {
-    }
+    public GroupMatcher() {}
 
     public List<Group> getGroups(List<String> rows) {
-        Set<String> setRows = new TreeSet<>(rows);
+        List<Row> localRows = rows.stream().map(Row::new).collect(Collectors.toList());
 
-        List<Map<String, Group>> groupMappings = new ArrayList<>();
+        List<Map<String, Row>> rowMappings = new ArrayList<>();
+
+        for (Row row : localRows) {
+            List<String> values = new ArrayList<>();
+            boolean isValid = true;
+
+            var iterator = splitRow(row.getRow().trim()).stream().map(this::prepareValue).iterator();
+            while (iterator.hasNext()) {
+                var result = iterator.next();
+                values.add(result.getValue());
+                if (!result.isSuccess())
+                    isValid = false;
+            }
+
+            if (!isValid)
+                continue;
+
+            for (int i = 0; i < values.size(); i++) {
+                if (rowMappings.size() <= i) {
+                    break;
+                }
+                if (values.get(i) == null) {
+                    continue;
+                }
+                if (rowMappings.get(i).containsKey(values.get(i))) {
+                    rowMappings.get(i).get(values.get(i)).addFriend(row);
+                    row.addFriend(rowMappings.get(i).get(values.get(i)));
+                }
+            }
+
+            for (int i = 0; i < values.size(); i++) {
+                if (rowMappings.size() <= i) {
+                    rowMappings.add(new HashMap<>());
+                }
+
+                if (values.get(i) == null) {
+                    continue;
+                }
+                if (!rowMappings.get(i).containsKey(values.get(i)))
+                    rowMappings.get(i).put(values.get(i), row);
+            }
+        }
+
         List<Group> groups = new ArrayList<>();
 
-        for (String row : setRows) {
-            List<String> values = splitRow(row.trim());
-            Group foundGroup = null;
-
-            boolean badRow = false;
-
-            for (int i = 0; i < values.size(); i++) {
-
-                var preparingResult = prepareValue(values.get(i));
-
-                if (!preparingResult.isSuccess()) {
-                    badRow = true;
-                    break;
-                }
-
-                if (groupMappings.size() <= i) {
-                    break;
-                }
-                if (preparingResult.getValue() == null) {
-                    continue;
-                }
-                if (groupMappings.get(i).containsKey(preparingResult.getValue())) {
-                    foundGroup = groupMappings.get(i).get(preparingResult.getValue());
-                    break;
-                }
-            }
-
-            if (badRow) {
+        for (Row row : localRows) {
+            if (row.isReadRow())
                 continue;
-            }
+            Queue<Row> queue = new LinkedList<>();
+            queue.add(row);
+            Group group = new Group();
 
-            if (foundGroup == null) {
-                foundGroup = new Group();
-                groups.add(foundGroup);
-            }
-
-            foundGroup.addRow(row);
-
-            for (int i = 0; i < values.size(); i++) {
-                if (groupMappings.size() <= i) {
-                    groupMappings.add(new HashMap<>());
-                }
-                var preparingResult = prepareValue(values.get(i));
-                if (!preparingResult.isSuccess()) {
-                    throw new IllegalArgumentException(preparingResult.getValue());
-                }
-                if (preparingResult.getValue() == null) {
+            while (!queue.isEmpty()) {
+                Row nextRow = queue.poll();
+                if (nextRow.isReadRow())
                     continue;
-                }
-                groupMappings.get(i).put(preparingResult.getValue(), foundGroup);
+                nextRow.setIsRead(true);
+                group.addRow(nextRow.getRow());
+                queue.addAll(nextRow.getFriends());
             }
+
+            groups.add(group);
         }
 
         return groups;

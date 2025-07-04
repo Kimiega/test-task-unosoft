@@ -8,6 +8,7 @@ import com.kimiega.unosoft.testtask.io.RowsReader;
 import com.kimiega.unosoft.testtask.model.Group;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Main {
     private static final String OUTPUT_FILENAME = "output.txt";
@@ -21,7 +22,8 @@ public class Main {
 
             RowsReader rowsReader = new FileRowsReader(path);
 
-            List<String> rows = rowsReader.readRows();
+            List<String> rows = rowsReader.readRows()
+                    .stream().distinct().collect(Collectors.toList());
 
             GroupMatcher groupMatcher = new GroupMatcher();
 
