@@ -26,7 +26,7 @@ time java -Xmx1G -jar test-task-unosoft-1.0-SNAPSHOT.jar lng.txt
 ```
 который показал
 ```text
-real    0m11.708s
-user    0m10.572s
-sys     0m0.888s
+real    0m12.216s
+user    0m11.420s
+sys     0m0.687s
 ```
